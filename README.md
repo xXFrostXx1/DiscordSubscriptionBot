@@ -1,1 +1,1 @@
-# DiscordSubscriptionBot
+DiscordSubscriptionBot is a versatile Discord bot application crafted using discord.js. Designed to streamline interactions within Discord servers, it features an advanced command handling system and sophisticated event listeners for both messages and interactions. Commands vital for the bot's functionality are neatly organized in the "commands" folder, making customization and enhancement straightforward. Ideal for developers and community managers seeking to elevate their Discord server's interactivity and automation.
