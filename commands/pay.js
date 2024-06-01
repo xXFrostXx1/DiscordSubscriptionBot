@@ -1,31 +1,31 @@
 require('dotenv').config();
 const axios = require('axios');
-const prompt = require('prompt-sync')({ sigint: true });
+const getUserInput = require('prompt-sync')({ sigint: true });
 
-async function initiatePayment() {
+async function processPayment() { 
   try {
     console.log("Available payment methods: 1. Credit Card, 2. PayPal");
-    const paymentMethod = prompt("Please choose your payment method (Enter 1 for Credit Card or 2 for PayPal): ");
-    const amount = prompt("Enter the amount you wish to pay: ");
+    const selectedPaymentMethod = getUserInput("Please choose your payment method (Enter 1 for Credit Card or 2 for PayPal): "); 
+    const paymentAmount = getUserInput("Enter the amount you wish to pay: "); 
 
-    if (isNaN(amount) || amount <= 0) throw new Error("Invalid amount");
-    if (paymentMethod !== '1' && paymentConfig !== '2') throw new Error("Invalid payment method");
+    if (isNaN(paymentAmount) || paymentAmount <= 0) throw new Error("Invalid amount");
+    if (selectedPaymentMethod !== '1' && selectedPaymentMethod !== '2') throw new Error("Invalid payment method"); 
     
-    const paymentRequest = {
-      method: paymentMethod === '1' ? 'Credit Card' : 'PayPal',
-      amount: parseFloat(amount),
+    const paymentDetails = { 
+      method: selectedPaymentMethod === '1' ? 'Credit Card' : 'PayPal',
+      amount: parseFloat(paymentAmount),
     };
 
-    const response = await axios.post(`${process.env.BACKEND_API_URL}/create-payment`, paymentRequest);
+    const paymentResponse = await axios.post(`${process.env.BACKEND_API_URL}/create-payment`, paymentDetails); 
 
-    if (response.data && response.data.success) {
-      console.log(`Payment initiated successfully. Please follow these instructions: ${response.data.instructions}`);
+    if (paymentResponse.data && paymentResponse.data.success) {
+      console.log(`Payment processed successfully. Please follow these instructions: ${paymentResponse.data.instructions}`); 
     } else {
-      throw new Error("Failed to initiate payment");
+      throw new Error("Failed to process payment");
     }
   } catch (error) {
-    console.error(`Error initiating payment: ${error.message}`);
+    console.error(`Error processing payment: ${error.message}`); 
   }
 }
 
-initiatePayment();
+processPayment(); 
