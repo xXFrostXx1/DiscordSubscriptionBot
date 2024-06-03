@@ -8,45 +8,61 @@ const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_
 client.commands = new Collection();
 client.cooldowns = new Collection();
 
-const commandCache = new Map();
-
 const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
-for (const file of commandFiles) {
-    const command = require(`./commands/${file}`);
-    client.commands.set(command.data.name, command);
-    commandCache.set(command.data.name, command);
-}
+
+const loadCommands = () => {
+    try {
+        for (const file of commandFiles) {
+            const command = require(`./commands/${file}`);
+            client.commands.set(command.data.name, command);
+        }
+    } catch (error) {
+        console.error("Error loading a command file: ", error);
+    }
+};
+
+loadCommands();
 
 client.once('ready', () => {
     console.log('Ready!');
 });
 
-client.on('messageCreate', message => {
+client.on('messageCreate', async message => {
     if (!message.content.startsWith(process.env.PREFIX) || message.author.bot) return;
+
     const args = message.content.slice(process.env.PREFIX.length).trim().split(/\s+/);
     const commandName = args.shift().toLowerCase();
 
-    const command = commandCache.get(commandName) || client.commands.get(commandName);
+    const command = client.commands.get(commandName)
+        || client.commands.find(cmd => cmd.data.aliases && cmd.data.aliases.includes(commandName));
 
-    if (!command) return;
+    if (!command) {
+        message.reply('Command does not exist.');
+        return;
+    }
 
     try {
-        command.execute(message, args);
+        await command.execute(message, args);
     } catch (error) {
-        console.error(error);
-        message.reply('there was an error trying to execute that color!');
+        console.error(`There was an error trying to execute command ${commandName}: `, error);
+        message.reply(`An error occurred while executing that command. Please try again later.`);
     }
 });
 
 client.on('interactionCreate', async interaction => {
     if (!interaction.isCommand()) return;
-    const command = commandCache.get(interaction.commandName) || client.commands.get(interaction.commandName);
-    if (!command) return;
+
+    const command = client.commands.get(interaction.commandName);
+
+    if (!command) {
+        await interaction.reply({ content: 'Command not found.', ephemeral: true });
+        return;
+    }
 
     try {
         await command.execute(interaction);
     } catch (error) {
-        console.error(error);
+        console.error(`Error executing command ${interaction.commandName}: `, error);
         await interaction.reply({ content: 'There was an error executing this command!', ephemeral: true });
     }
 });
