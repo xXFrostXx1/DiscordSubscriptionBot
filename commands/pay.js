@@ -1,33 +1,41 @@
 require('dotenv').config();
 const axios = require('axios');
-const getUserInput = require('prompt-sync')({ sigint: true });
+const promptSync = require('prompt-sync')({ sigint: true });
 
-function promptPaymentMethod() {
+const promptPaymentMethodAsync = async () => {
   console.log("Available payment methods: 1. Credit Card, 2. PayPal");
-  let method = getUserInput("Please choose your payment method (Enter 1 for Credit Card or 2 for PayPal): ");
-  if (method !== '1' && method !== '2') throw new Error("Invalid payment method");
+  let method;
+  do {
+    method = promptSync("Please choose your payment method (Enter 1 for Credit Card or 2 for PayPal): ");
+  } while (method !== '1' && method !== '2');
   return method === '1' ? 'Credit Card' : 'PayPal';
 }
 
-function promptPaymentAmount() {
-  let amount = getUserInput("Enter the amount you wish to pay: ");
-  if (isNaN(amount) || amount <= 0) throw new Error("Invalid amount");
+const promptPaymentAmountAsync = async () => {
+  let amount;
+  do {
+    amount = promptSync("Enter the amount you wish to pay: ");
+  } while (isNaN(amount) || amount <= 0);
   return parseFloat(amount);
 }
 
-async function submitPayment(paymentInformation) {
-  const response = await axios.post(`${process.env.BACKEND_API_URL}/create-payment`, paymentInformation);
-  if (response.data && response.data.success) {
-    console.log(`Payment processed successfully. Please follow these instructions: ${response.data.instructions}`);
-  } else {
-    throw new Error("Failed to process payment");
+const submitPayment = async (paymentInformation) => {
+  try {
+    const response = await axios.post(`${process.env.BACKEND_API_URL}/create-payment`, paymentInformation);
+    if (response.data && response.data.success) {
+      console.log(`Payment processed successfully. Please follow these instructions: ${response.data.instructions}`);
+    } else {
+      console.error("Failed to process payment");
+    }
+  } catch (error) {
+    console.error(`Error processing payment: ${error.message}`);
   }
 }
 
-async function initiatePaymentProcess() {
+const initiatePaymentProcess = async () => {
   try {
-    const chosenPaymentMethod = promptPaymentMethod();
-    const paymentAmount = promptPaymentAmount();
+    const chosenPaymentMethod = await promptPaymentMethodAsync();
+    const paymentAmount = await promptPaymentAmountAsync();
 
     const paymentInformation = {
       method: chosenPaymentMethod,
@@ -36,8 +44,8 @@ async function initiatePaymentProcess() {
 
     await submitPayment(paymentInformation);
   } catch (paymentError) {
-    console.error(`Error processing payment: ${paymentError.message}`);
+    console.error(`Error: ${paymentError.message}`);
   }
-}
+};
 
 initiatePaymentProcess();
