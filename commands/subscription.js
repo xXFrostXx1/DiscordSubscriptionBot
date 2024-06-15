@@ -24,43 +24,61 @@ async function checkSubscription(userId) {
     }
 }
 
+async function processSubscriptionAction(userId, action) {
+    const actions = {
+        check: async () => {
+            const subscriptionDetails = await checkSubscription(userId);
+            return `Your subscription status: ${subscriptionDetails.status}. Expires on: ${subscriptionDetails.expiresOn}`;
+        },
+        renew: async () => {
+            return await changeSubscriptionStatus(userId, 'renew');
+        },
+        cancel: async () => {
+            return await changeSubscriptionStatus(userId, 'cancel');
+        }
+    };
+
+    if (actions[action]) {
+        return await actions[action]();
+    } else {
+        throw new Error('Invalid action. Please use "check", "renew", or "cancel".');
+    }
+}
+
+async function changeSubscriptionStatus(userId, action) {
+    const response = await axios.post(`${process.env.BACKEND_URL}/subscriptions/${action}`, { userId }, {
+        headers: {
+            'Authorization': `Bearer ${process.env.API_TOKEN}`,
+        },
+    });
+
+    const actionVerb = action === 'renew' ? 'renewed' : 'cancelled';
+    const messagePart = action === 'renew' ? ` New expiry date: ${response.data.expiresOn}` : '';
+
+    await notifyUserSubscriptionStatusChange(userId, actionVerb);
+
+    return `Subscription ${actionVerb} successfully.${messagePart}`;
+}
+
 async function subscriptionCommand(userId, action) {
     try {
-        let message;
-        if (action === 'check') {
-            const subscriptionDetails = await checkSubscription(userId);
-            message = `Your subscription status: ${subscriptionDetails.status}. Expires on: ${subscriptionDetails.expiresOn}`;
-        } else if (action === 'renew' || action === 'cancel') {
-            const endpoint = action === 'renew' ? 'renew' : 'cancel';
-            const response = await axios.post(`${process.env.BACKEND_URL}/subscriptions/${endpoint}`, { userId }, {
-                headers: {
-                    'Authorization': `Bearer ${process.env.API_TOKEN}`,
-                },
-            });
-
-            const actioned = action === 'renew' ? 'renewed' : 'cancelled';
-            message = `Subscription ${actioned} successfully.` + (action === 'renew' ? ` New expiry date: ${response.data.expiresOn}` : '');
-            await notifyUserSubscriptionStatusChange(userId, actioned);
-        } else {
-            message = 'Invalid action. Please use "check", "renew", or "cancel".';
-        }
-
+        const message = await processSubscriptionAction(userId, action);
         console.log(message);
     } catch (error) {
-        if (error.response) {
-            // The request was made and the server responded with a status code
-            // that falls out of the range of 2xx
-            console.error('Error response data:', error.response.data);
-            console.error('Error response status:', error.response.status);
-        } else if (error.request) {
-            // The request was made but no response was received
-            console.error('Error request:', error.request);
-        } else {
-            // Something happened in setting up the request that triggered an Error
-            console.error('Error', error.message);
-        }
-        console.error('An error occurred:', error.config);
+        handleError(error);
     }
+}
+
+function handleError(error) {
+    if (error.response) {
+        console.error('Error response data:', error.response.data);
+        console.error('Error response status:', error.response.status);
+    } else if (error.request) {
+        console.error('Error request:', error.request);
+    } else {
+        console.error('Error', error.message);
+    }
+    console.error('Error configuration:', error.config);
 }
 
 subscriptionCommand('someUserId', 'check');
