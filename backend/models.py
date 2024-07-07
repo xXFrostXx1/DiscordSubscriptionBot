@@ -6,30 +6,36 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URI = os.getenv("DATABASE_URL") 
 
-engine = create_engine(DATABASE_URL, echo=True)
-Session = sessionmaker(bind=engine)
-session = Session()
-Base = declarative_base()
+engine = create_engine(DATABASE_URI, echo=True)  
+SessionManager = sessionmaker(bind=engine)  
+session = SessionManager()
+BaseModel = declarative_base()  
 
-class Payment(Base):
-    __tablename__ = 'payment'
+class PaymentRecord(BaseModel):  
+    __tablename__ = 'payments'  
     
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey('user.id'))
-    amount = Column(Integer)
-    status = Column(String)
-    payment_method = Column(String)
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'))  
+    amount_paid = Column(Integer)  
+    payment_status = Column(String)  
+    payment_method_type = Column(String)  
     
 
-class Subscription(Base):
-    __tablename__ = 'subscription'
+class SubscriptionDetail(BaseModel):  
+    __tablename__ = 'subscriptions'  
     
-    id = Column(Integer, primary_key=True, index=True)
-    user_url = Column(Integer, ForeignKey('user.id'))
-    subscription_type = Column(String)
-    start_date = Column(DateTime)
-    end (Date)Time)
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'))  
+    type_of_subscription = Column(String)  
+    subscription_start_date = Column(DateTime)  
+    subscription_end()ate = Column(DateTime)  
+
+class User(BaseModel):  
+    __tablename__ = 'users'
+    id = Column(Integer, primary_key=True)
+    payments = relationship("PaymentRecord", backref="user")
+    subscriptions = relationship("SubscriptionDetail", backref="user")
     
-Base.metadata.create_all(engine)
+BaseModel.metadata.create_all(engine)  
